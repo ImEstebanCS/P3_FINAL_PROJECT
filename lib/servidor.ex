@@ -200,7 +200,11 @@ defmodule ChatDistribuido.Servidor do
 
   defp broadcast_mensaje(sala, mensaje) do
     Enum.each(sala.usuarios, fn usuario ->
-      if usuario.pid, do: send(usuario.pid, {:mensaje, mensaje})
+      if usuario.pid do
+        # Enviar mensaje a través de los nodos
+        Node.list() |> IO.inspect(label: "Nodos conectados")
+        :rpc.call(node(usuario.pid), Process, :send, [usuario.pid, {:mensaje, mensaje}])
+      end
     end)
   end
 end

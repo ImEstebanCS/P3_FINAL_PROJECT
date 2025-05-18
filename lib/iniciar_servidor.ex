@@ -15,9 +15,9 @@ defmodule ChatDistribuido.IniciarServidor do
 
     IO.puts("Servidor iniciado en #{nombre_nodo}")
     IO.puts("Cookie establecida: #{Node.get_cookie()}")
-    IO.puts("\nEsperando conexiones de clientes...")
+    IO.puts("\nIniciando interfaz de cliente...")
 
-    # Mantener el proceso vivo
-    Process.sleep(:infinity)
+    # Iniciar el cliente en el mismo nodo del servidor
+    ChatDistribuido.Cliente.start()
   end
 end

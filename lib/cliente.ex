@@ -8,19 +8,38 @@ defmodule ChatDistribuido.Cliente do
     IO.puts("Por favor, ingresa tu nombre de usuario:")
     nombre = IO.gets("") |> String.trim()
 
-    case ChatDistribuido.Servidor.registrar_usuario(nombre) do
+    Process.flag(:trap_exit, true)
+
+    case registrar_usuario(nombre) do
       {:ok, _usuario} ->
-        IO.puts("\nComandos disponibles:")
-        IO.puts("/create nombre_sala - Crear una nueva sala")
-        IO.puts("/list - Listar salas disponibles")
-        IO.puts("/join nombre_sala - Unirse a una sala")
-        IO.puts("/history nombre_sala - Ver historial de la sala")
-        IO.puts("/exit - Salir del chat")
-        IO.puts("Cualquier otro texto será enviado como mensaje a la sala actual\n")
+        mostrar_comandos()
         loop(nombre)
       {:error, mensaje} ->
         IO.puts("Error: #{mensaje}")
     end
+  end
+
+  defp registrar_usuario(nombre) do
+    case ChatDistribuido.Servidor.registrar_usuario(nombre) do
+      {:ok, _} = resultado ->
+        resultado
+      {:error, _} = error ->
+        # Esperar un momento y reintentar
+        Process.sleep(1000)
+        registrar_usuario(nombre)
+      _ ->
+        {:error, "Error desconocido al registrar usuario"}
+    end
+  end
+
+  defp mostrar_comandos do
+    IO.puts("\nComandos disponibles:")
+    IO.puts("/create nombre_sala - Crear una nueva sala")
+    IO.puts("/list - Listar salas disponibles")
+    IO.puts("/join nombre_sala - Unirse a una sala")
+    IO.puts("/history nombre_sala - Ver historial de la sala")
+    IO.puts("/exit - Salir del chat")
+    IO.puts("Cualquier otro texto será enviado como mensaje a la sala actual\n")
   end
 
   defp loop(nombre, sala_actual \\ nil) do
@@ -48,7 +67,25 @@ defmodule ChatDistribuido.Cliente do
             loop(nombre, nombre_sala)
           {:error, mensaje} ->
             IO.puts("Error: #{mensaje}")
-            loop(nombre, sala_actual)
+            # Reintentar registro si el error es de usuario no encontrado
+            if mensaje == "Usuario no encontrado" do
+              case registrar_usuario(nombre) do
+                {:ok, _} ->
+                  case ChatDistribuido.Servidor.unirse_sala(nombre, nombre_sala) do
+                    :ok ->
+                      IO.puts("Te has unido a la sala '#{nombre_sala}'")
+                      loop(nombre, nombre_sala)
+                    {:error, nuevo_mensaje} ->
+                      IO.puts("Error: #{nuevo_mensaje}")
+                      loop(nombre, sala_actual)
+                  end
+                {:error, error_mensaje} ->
+                  IO.puts("Error al reconectar: #{error_mensaje}")
+                  loop(nombre, sala_actual)
+              end
+            else
+              loop(nombre, sala_actual)
+            end
         end
 
       "/history" when not is_nil(sala_actual) ->

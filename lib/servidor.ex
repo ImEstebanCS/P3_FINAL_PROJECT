@@ -46,11 +46,11 @@ defmodule ChatDistribuido.Servidor do
     end
   end
 
-  def listar_salas do
+  def listar_salas_y_usuarios do
     try do
-      GenServer.call({:global, __MODULE__}, :listar_salas)
+      GenServer.call({:global, __MODULE__}, :listar_salas_y_usuarios)
     catch
-      :exit, _ -> []
+      :exit, _ -> {[], []}
     end
   end
 
@@ -79,38 +79,56 @@ defmodule ChatDistribuido.Servidor do
 
   @impl true
   def handle_call({:registrar_usuario, nombre, pid}, _from, estado) do
-    # Monitorear el proceso del cliente
-    Process.monitor(pid)
-
-    if Map.has_key?(estado.usuarios, nombre) do
-      # Si el usuario existe pero su PID es diferente, actualizamos el PID
-      usuario_existente = Map.get(estado.usuarios, nombre)
-      if usuario_existente.pid != pid do
+    try do
+      Process.monitor(pid)
+      if Map.has_key?(estado.usuarios, nombre) do
+        usuario_existente = Map.get(estado.usuarios, nombre)
+        if usuario_existente.pid != pid do
+          # Si el usuario existe pero con un PID diferente, actualizamos su PID
+          usuario = Usuario.nuevo(nombre, pid)
+          nuevo_estado = %{estado | usuarios: Map.put(estado.usuarios, nombre, usuario)}
+          {:reply, {:ok, usuario}, nuevo_estado}
+        else
+          {:reply, {:ok, usuario_existente}, estado}
+        end
+      else
         usuario = Usuario.nuevo(nombre, pid)
         nuevo_estado = %{estado | usuarios: Map.put(estado.usuarios, nombre, usuario)}
         {:reply, {:ok, usuario}, nuevo_estado}
-      else
-        {:reply, {:ok, usuario_existente}, estado}
       end
-    else
-      usuario = Usuario.nuevo(nombre, pid)
-      nuevo_estado = %{estado | usuarios: Map.put(estado.usuarios, nombre, usuario)}
-      {:reply, {:ok, usuario}, nuevo_estado}
+    catch
+      kind, reason ->
+        IO.puts("Error al registrar usuario: #{inspect(reason)}")
+        {:reply, {:error, "Error interno del servidor"}, estado}
     end
   end
 
-  # Manejar la caída de un proceso de cliente
   @impl true
-  def handle_info({:DOWN, _ref, :process, pid, _reason}, estado) do
-    # Encontrar y mantener el usuario, solo marcar como desconectado
-    usuarios_actualizados = Enum.reduce(estado.usuarios, %{}, fn {nombre, usuario}, acc ->
-      if usuario.pid == pid do
-        Map.put(acc, nombre, %{usuario | pid: nil})
+  def handle_info({:DOWN, _ref, :process, pid, reason}, estado) do
+    try do
+      # Encontrar el usuario que se desconectó
+      {nombre, _usuario} = Enum.find(estado.usuarios, fn {_nombre, usuario} ->
+        usuario.pid == pid
+      end) || {nil, nil}
+
+      if nombre do
+        # Marcar al usuario como desconectado pero mantener su información
+        usuarios_actualizados = Map.update!(estado.usuarios, nombre, fn usuario ->
+          %{usuario | pid: nil}
+        end)
+
+        # Notificar a otros usuarios sobre la desconexión
+        broadcast_sistema("El usuario #{nombre} se ha desconectado")
+
+        {:noreply, %{estado | usuarios: usuarios_actualizados}}
       else
-        Map.put(acc, nombre, usuario)
+        {:noreply, estado}
       end
-    end)
-    {:noreply, %{estado | usuarios: usuarios_actualizados}}
+    catch
+      kind, reason ->
+        IO.puts("Error al manejar desconexión: #{inspect(reason)}")
+        {:noreply, estado}
+    end
   end
 
   @impl true
@@ -143,9 +161,10 @@ defmodule ChatDistribuido.Servidor do
   end
 
   @impl true
-  def handle_call(:listar_salas, _from, estado) do
+  def handle_call(:listar_salas_y_usuarios, _from, estado) do
     salas = Map.keys(estado.salas)
-    {:reply, salas, estado}
+    usuarios = Map.keys(estado.usuarios)
+    {:reply, {salas, usuarios}, estado}
   end
 
   @impl true
@@ -211,5 +230,16 @@ defmodule ChatDistribuido.Servidor do
         end
       end
     end)
+  end
+
+  # Función para enviar mensajes del sistema
+  defp broadcast_sistema(mensaje) do
+    try do
+      Enum.each(Node.list(), fn node ->
+        :rpc.cast(node, Process, :send, [{:global, __MODULE__}, {:sistema, mensaje}])
+      end)
+    catch
+      _kind, _reason -> :ok
+    end
   end
 end

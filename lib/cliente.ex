@@ -123,7 +123,9 @@ defmodule ChatDistribuido.Cliente do
             IO.puts("\nSalas disponibles:")
             Enum.each(salas, &IO.puts("- #{&1}"))
             IO.puts("\nUsuarios conectados:")
-            Enum.each(usuarios, &IO.puts("- #{&1}"))
+            Enum.each(usuarios, fn usuario ->
+              IO.puts("- #{ChatDistribuido.Usuario.formatear(usuario)}")
+            end)
             IO.puts("")
             message_loop(nombre, input_pid, sala_actual)
 
@@ -178,6 +180,12 @@ defmodule ChatDistribuido.Cliente do
             message_loop(nombre, input_pid, nil)
 
           "/exit" when is_nil(sala_actual) ->
+            # Notificar al servidor que el usuario se desconecta
+            try do
+              GenServer.call({:global, ChatDistribuido.Servidor}, {:desconectar_usuario, nombre})
+            catch
+              _kind, _reason -> :ok
+            end
             IO.puts("\n¡Hasta luego!")
             Process.exit(input_pid, :normal)
             :ok

@@ -112,15 +112,19 @@ defmodule ChatDistribuido.Servidor do
       end) || {nil, nil}
 
       if nombre do
-        # Marcar al usuario como desconectado pero mantener su información
-        usuarios_actualizados = Map.update!(estado.usuarios, nombre, fn usuario ->
-          %{usuario | pid: nil}
+        # Eliminar completamente al usuario de la lista
+        usuarios_actualizados = Map.delete(estado.usuarios, nombre)
+
+        # Actualizar las salas para eliminar al usuario
+        salas_actualizadas = Map.map(estado.salas, fn {nombre_sala, sala} ->
+          sala_actualizada = Sala.eliminar_usuario(sala, %Usuario{nombre: nombre, pid: nil})
+          {nombre_sala, sala_actualizada}
         end)
 
         # Notificar a otros usuarios sobre la desconexión
         broadcast_sistema("El usuario #{nombre} se ha desconectado")
 
-        {:noreply, %{estado | usuarios: usuarios_actualizados}}
+        {:noreply, %{estado | usuarios: usuarios_actualizados, salas: salas_actualizadas}}
       else
         {:noreply, estado}
       end
@@ -163,7 +167,7 @@ defmodule ChatDistribuido.Servidor do
   @impl true
   def handle_call(:listar_salas_y_usuarios, _from, estado) do
     salas = Map.keys(estado.salas)
-    usuarios = Map.keys(estado.usuarios)
+    usuarios = Map.values(estado.usuarios)
     {:reply, {salas, usuarios}, estado}
   end
 
@@ -185,6 +189,29 @@ defmodule ChatDistribuido.Servidor do
       {:reply, :ok, nuevo_estado}
     else
       error -> {:reply, error, estado}
+    end
+  end
+
+  @impl true
+  def handle_call({:desconectar_usuario, nombre}, _from, estado) do
+    try do
+      # Eliminar al usuario de la lista de usuarios
+      usuarios_actualizados = Map.delete(estado.usuarios, nombre)
+
+      # Actualizar las salas para eliminar al usuario
+      salas_actualizadas = Map.map(estado.salas, fn {nombre_sala, sala} ->
+        sala_actualizada = Sala.eliminar_usuario(sala, %Usuario{nombre: nombre, pid: nil})
+        {nombre_sala, sala_actualizada}
+      end)
+
+      # Notificar a otros usuarios sobre la desconexión
+      broadcast_sistema("El usuario #{nombre} se ha desconectado")
+
+      {:reply, :ok, %{estado | usuarios: usuarios_actualizados, salas: salas_actualizadas}}
+    catch
+      kind, reason ->
+        IO.puts("Error al desconectar usuario: #{inspect(reason)}")
+        {:reply, :error, estado}
     end
   end
 

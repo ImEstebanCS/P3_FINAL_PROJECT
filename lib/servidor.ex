@@ -88,18 +88,10 @@ defmodule ChatDistribuido.Servidor do
   @impl true
   def handle_call({:registrar_usuario, nombre, pid}, _from, estado) do
     try do
-      Process.monitor(pid)
       if Map.has_key?(estado.usuarios, nombre) do
-        usuario_existente = Map.get(estado.usuarios, nombre)
-        if usuario_existente.pid != pid do
-          # Si el usuario existe pero con un PID diferente, actualizamos su PID
-          usuario = Usuario.nuevo(nombre, pid)
-          nuevo_estado = %{estado | usuarios: Map.put(estado.usuarios, nombre, usuario)}
-          {:reply, {:ok, usuario}, nuevo_estado}
-        else
-          {:reply, {:ok, usuario_existente}, estado}
-        end
+        {:reply, {:error, "El nombre de usuario '#{nombre}' ya está en uso"}, estado}
       else
+        Process.monitor(pid)
         usuario = Usuario.nuevo(nombre, pid)
         nuevo_estado = %{estado | usuarios: Map.put(estado.usuarios, nombre, usuario)}
         {:reply, {:ok, usuario}, nuevo_estado}

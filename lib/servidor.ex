@@ -115,11 +115,22 @@ defmodule ChatDistribuido.Servidor do
       if nombre do
         # Eliminar al usuario de la lista de usuarios conectados
         usuarios_actualizados = Map.delete(estado.usuarios, nombre)
-        IO.inspect(usuarios_actualizados, label: "[DEBUG] Usuarios después de eliminar")
+
+        # Eliminar al usuario de todas las salas
+        salas_actualizadas = Map.new(estado.salas, fn {nombre_sala, sala} ->
+          if Sala.usuario_en_sala?(sala, nombre) do
+            sala_actualizada = Sala.eliminar_usuario(sala, Map.get(estado.usuarios, nombre))
+            broadcast_mensaje(sala_actualizada, "#{nombre} se ha desconectado")
+            {nombre_sala, sala_actualizada}
+          else
+            {nombre_sala, sala}
+          end
+        end)
+
         # Notificar a otros usuarios sobre la desconexión
         broadcast_sistema("El usuario #{nombre} se ha desconectado")
 
-        {:noreply, %{estado | usuarios: usuarios_actualizados}}
+        {:noreply, %{estado | usuarios: usuarios_actualizados, salas: salas_actualizadas}}
       else
         IO.puts("[DEBUG] No se encontró usuario para el PID desconectado")
         {:noreply, estado}

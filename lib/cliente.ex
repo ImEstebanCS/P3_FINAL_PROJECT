@@ -10,16 +10,11 @@ defmodule ChatDistribuido.Cliente do
 
     Process.flag(:trap_exit, true)
 
-    case registrar_usuario(nombre) do
-      {:ok, _usuario} ->
-        mostrar_comandos()
-        # Iniciamos el proceso de entrada en un hilo separado
-        input_pid = spawn_link(__MODULE__, :input_loop, [self(), nombre])
-        # Iniciamos el proceso principal de mensajes
-        message_loop(nombre, input_pid)
-      {:error, mensaje} ->
-        IO.puts("Error: #{mensaje}")
-    end
+    mostrar_comandos()
+    # Iniciamos el proceso de entrada en un hilo separado
+    input_pid = spawn_link(__MODULE__, :input_loop, [self(), nombre])
+    # Iniciamos el proceso principal de mensajes
+    message_loop(nombre, input_pid)
   end
 
   defp solicitar_nombre do

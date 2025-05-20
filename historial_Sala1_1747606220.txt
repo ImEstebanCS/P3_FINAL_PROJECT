@@ -1,5 +1,0 @@
-[22:6] Maicol: Hola
-[22:6] Juan: Como estas
-[22:7] Maicol: Bien y tu
-[22:10] Maicol: ...
-[22:10] Juan: hola esteba

@@ -1,8 +1,7 @@
 defmodule ChatDistribuido.Cliente do
-  @moduledoc """
-  Cliente del chat distribuido que maneja la interfaz de línea de comandos.
-  """
+  # Módulo que maneja la interfaz de línea de comandos para el cliente del chat distribuido.
 
+  # Inicia la interfaz de cliente y el registro de usuario
   def start do
     IO.puts("Iniciando interfaz de cliente...")
     IO.puts("Bienvenido al Chat Distribuido")
@@ -17,6 +16,7 @@ defmodule ChatDistribuido.Cliente do
     message_loop(nombre, input_pid)
   end
 
+  # Solicita un nombre de usuario y valida que no esté en uso
   defp solicitar_nombre do
     IO.puts("Por favor, ingresa tu nombre de usuario:")
     nombre = IO.gets("") |> String.trim()
@@ -29,7 +29,7 @@ defmodule ChatDistribuido.Cliente do
     end
   end
 
-  # Proceso público para manejar la entrada del usuario
+  # Bucle para manejar la entrada del usuario
   def input_loop(main_pid, nombre) do
     mensaje = IO.gets("")
     if mensaje do
@@ -39,8 +39,7 @@ defmodule ChatDistribuido.Cliente do
     end
   end
 
-  defp registrar_usuario(_nombre), do: :ok # Ya no se usa, solo para compatibilidad
-
+  # Muestra los comandos disponibles al usuario
   defp mostrar_comandos do
     IO.puts("\nComandos disponibles:")
     IO.puts("/create nombre_sala - Crear una nueva sala")
@@ -51,6 +50,7 @@ defmodule ChatDistribuido.Cliente do
     IO.puts("Cualquier otro texto será enviado como mensaje a la sala actual\n")
   end
 
+  # Muestra el prompt según la sala actual
   defp mostrar_prompt(sala_actual) do
     if sala_actual do
       IO.write("\r[#{sala_actual}]> ")
@@ -60,6 +60,7 @@ defmodule ChatDistribuido.Cliente do
     IO.write("") # Forzar el flush del buffer
   end
 
+  # Guarda el historial de mensajes en un archivo
   defp guardar_historial_en_archivo(nombre_sala, mensajes) do
     nombre_archivo = "historial_#{nombre_sala}_#{DateTime.utc_now() |> DateTime.to_unix()}.txt"
     contenido = mensajes
@@ -75,6 +76,7 @@ defmodule ChatDistribuido.Cliente do
     end
   end
 
+  # Muestra el historial de mensajes de una sala
   defp mostrar_historial(nombre_sala, mensajes) do
     IO.puts("\nHistorial de mensajes de la sala '#{nombre_sala}':")
     if Enum.empty?(mensajes) do
@@ -93,6 +95,7 @@ defmodule ChatDistribuido.Cliente do
     IO.puts("")
   end
 
+  # Bucle principal de mensajes y comandos del cliente
   defp message_loop(nombre, input_pid, sala_actual \\ nil) do
     mostrar_prompt(sala_actual)
 

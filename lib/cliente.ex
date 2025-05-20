@@ -180,12 +180,6 @@ defmodule ChatDistribuido.Cliente do
             message_loop(nombre, input_pid, nil)
 
           "/exit" when is_nil(sala_actual) ->
-            # Notificar al servidor que el usuario se desconecta
-            try do
-              GenServer.call({:global, ChatDistribuido.Servidor}, {:desconectar_usuario, nombre})
-            catch
-              _kind, _reason -> :ok
-            end
             IO.puts("\n¡Hasta luego!")
             Process.exit(input_pid, :normal)
             :ok

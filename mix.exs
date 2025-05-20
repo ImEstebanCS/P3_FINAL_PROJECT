@@ -19,6 +19,8 @@ defmodule ChatDistribuido.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:uuid, "~> 1.1"}
+    ]
   end
 end

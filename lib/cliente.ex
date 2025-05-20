@@ -182,7 +182,7 @@ defmodule ChatDistribuido.Cliente do
           "/exit" when is_nil(sala_actual) ->
             IO.puts("\n¡Hasta luego!")
             Process.exit(input_pid, :normal)
-            :ok
+            exit(:normal)
 
           mensaje when not is_nil(sala_actual) ->
             ChatDistribuido.Servidor.enviar_mensaje(nombre, sala_actual, mensaje)

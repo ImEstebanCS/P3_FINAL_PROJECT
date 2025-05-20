@@ -105,6 +105,7 @@ defmodule ChatDistribuido.Servidor do
 
   @impl true
   def handle_info({:DOWN, _ref, :process, pid, reason}, estado) do
+    IO.puts("[DEBUG] handle_info(:DOWN) ejecutado. PID: #{inspect(pid)}, reason: #{inspect(reason)}")
     try do
       # Encontrar el usuario que se desconectó
       {nombre, _usuario} = Enum.find(estado.usuarios, fn {_nombre, usuario} ->
@@ -114,12 +115,13 @@ defmodule ChatDistribuido.Servidor do
       if nombre do
         # Eliminar al usuario de la lista de usuarios conectados
         usuarios_actualizados = Map.delete(estado.usuarios, nombre)
-
+        IO.inspect(usuarios_actualizados, label: "[DEBUG] Usuarios después de eliminar")
         # Notificar a otros usuarios sobre la desconexión
         broadcast_sistema("El usuario #{nombre} se ha desconectado")
 
         {:noreply, %{estado | usuarios: usuarios_actualizados}}
       else
+        IO.puts("[DEBUG] No se encontró usuario para el PID desconectado")
         {:noreply, estado}
       end
     catch

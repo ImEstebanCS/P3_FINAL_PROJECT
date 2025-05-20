@@ -8,4 +8,3 @@ erl_crash.dump
 *.beam
 /config/*.secret.exs
 .elixir_ls/
-historial_sala1_1747618512.txt

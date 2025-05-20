@@ -112,10 +112,8 @@ defmodule ChatDistribuido.Servidor do
       end) || {nil, nil}
 
       if nombre do
-        # Marcar al usuario como desconectado pero mantener su información
-        usuarios_actualizados = Map.update!(estado.usuarios, nombre, fn usuario ->
-          %{usuario | pid: nil}
-        end)
+        # Eliminar al usuario de la lista de usuarios conectados
+        usuarios_actualizados = Map.delete(estado.usuarios, nombre)
 
         # Notificar a otros usuarios sobre la desconexión
         broadcast_sistema("El usuario #{nombre} se ha desconectado")

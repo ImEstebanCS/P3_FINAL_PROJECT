@@ -6,8 +6,7 @@ defmodule ChatDistribuido.Cliente do
   def start do
     IO.puts("Iniciando interfaz de cliente...")
     IO.puts("Bienvenido al Chat Distribuido")
-    IO.puts("Por favor, ingresa tu nombre de usuario:")
-    nombre = IO.gets("") |> String.trim()
+    nombre = solicitar_nombre()
 
     Process.flag(:trap_exit, true)
 
@@ -23,6 +22,18 @@ defmodule ChatDistribuido.Cliente do
     end
   end
 
+  defp solicitar_nombre do
+    IO.puts("Por favor, ingresa tu nombre de usuario:")
+    nombre = IO.gets("") |> String.trim()
+    case ChatDistribuido.Servidor.registrar_usuario(nombre) do
+      {:ok, _usuario} ->
+        nombre
+      {:error, mensaje} ->
+        IO.puts("Error: #{mensaje}")
+        solicitar_nombre()
+    end
+  end
+
   # Proceso público para manejar la entrada del usuario
   def input_loop(main_pid, nombre) do
     mensaje = IO.gets("")
@@ -33,16 +44,7 @@ defmodule ChatDistribuido.Cliente do
     end
   end
 
-  defp registrar_usuario(nombre) do
-    case ChatDistribuido.Servidor.registrar_usuario(nombre) do
-      {:ok, _} = resultado -> resultado
-      {:error, _} = error ->
-        Process.sleep(1000)
-        registrar_usuario(nombre)
-      _ ->
-        {:error, "Error desconocido al registrar usuario"}
-    end
-  end
+  defp registrar_usuario(_nombre), do: :ok # Ya no se usa, solo para compatibilidad
 
   defp mostrar_comandos do
     IO.puts("\nComandos disponibles:")
@@ -137,8 +139,8 @@ defmodule ChatDistribuido.Cliente do
               {:error, mensaje} ->
                 IO.puts("\nError: #{mensaje}")
                 if mensaje == "Usuario no encontrado" do
-                  case registrar_usuario(nombre) do
-                    {:ok, _} ->
+                  case solicitar_nombre() do
+                    nombre ->
                       case ChatDistribuido.Servidor.unirse_sala(nombre, nombre_sala) do
                         :ok ->
                           IO.puts("\nTe has unido a la sala '#{nombre_sala}'")
@@ -147,8 +149,7 @@ defmodule ChatDistribuido.Cliente do
                           IO.puts("\nError: #{nuevo_mensaje}")
                           message_loop(nombre, input_pid, sala_actual)
                       end
-                    {:error, error_mensaje} ->
-                      IO.puts("\nError al reconectar: #{error_mensaje}")
+                    _ ->
                       message_loop(nombre, input_pid, sala_actual)
                   end
                 else

@@ -3,14 +3,13 @@ defmodule ChatDistribuido.Usuario do
   Módulo que representa a un usuario del chat.
   """
 
-  defstruct [:id, :nombre, :pid]
+  defstruct [:nombre, :pid]
 
   @doc """
-  Crea una nueva estructura de Usuario con un ID único.
+  Crea una nueva estructura de Usuario.
   """
   def nuevo(nombre, pid) do
     %__MODULE__{
-      id: UUID.uuid4(),
       nombre: nombre,
       pid: pid
     }

@@ -280,12 +280,6 @@ defmodule ChatDistribuido.Servidor do
 
   # Función para enviar mensajes del sistema
   defp broadcast_sistema(mensaje) do
-    try do
-      Enum.each(Node.list(), fn node ->
-        :rpc.cast(node, Process, :send, [{:global, __MODULE__}, {:sistema, mensaje}])
-      end)
-    catch
-      _kind, _reason -> :ok
-    end
+    IO.puts("[SISTEMA] #{mensaje}")
   end
 end

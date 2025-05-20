@@ -134,4 +134,11 @@ defmodule ChatDistribuido.Sala do
   def obtener_historial(sala) do
     Enum.reverse(sala.mensajes)
   end
+
+  @doc """
+  Verifica si un usuario está en la sala.
+  """
+  def usuario_en_sala?(sala, nombre_usuario) do
+    Enum.any?(sala.usuarios, fn usuario -> usuario.nombre == nombre_usuario end)
+  end
 end

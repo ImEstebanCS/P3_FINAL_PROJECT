@@ -180,6 +180,12 @@ defmodule ChatDistribuido.Cliente do
             message_loop(nombre, input_pid, nil)
 
           "/exit" when is_nil(sala_actual) ->
+            # Notificar al servidor que el usuario se va
+            try do
+              ChatDistribuido.Servidor.desconectar_usuario(nombre)
+            catch
+              :exit, _ -> :ok
+            end
             IO.puts("\n¡Hasta luego!")
             Process.exit(input_pid, :normal)
             exit(:normal)

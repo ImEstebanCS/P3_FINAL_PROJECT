@@ -70,6 +70,14 @@ defmodule ChatDistribuido.Servidor do
     end
   end
 
+  def desconectar_usuario(nombre_usuario) do
+    try do
+      GenServer.call({:global, __MODULE__}, {:desconectar_usuario, nombre_usuario})
+    catch
+      :exit, _ -> {:error, "Error al desconectar usuario"}
+    end
+  end
+
   # Callbacks del Servidor
   @impl true
   def init(_opts) do
@@ -196,6 +204,33 @@ defmodule ChatDistribuido.Servidor do
       {:reply, :ok, nuevo_estado}
     else
       error -> {:reply, error, estado}
+    end
+  end
+
+  @impl true
+  def handle_call({:desconectar_usuario, nombre_usuario}, _from, estado) do
+    case Map.fetch(estado.usuarios, nombre_usuario) do
+      {:ok, usuario} ->
+        # Eliminar al usuario de todas las salas
+        salas_actualizadas = Map.new(estado.salas, fn {nombre_sala, sala} ->
+          if Sala.usuario_en_sala?(sala, nombre_usuario) do
+            sala_actualizada = Sala.eliminar_usuario(sala, usuario)
+            broadcast_mensaje(sala_actualizada, "#{nombre_usuario} se ha desconectado")
+            {nombre_sala, sala_actualizada}
+          else
+            {nombre_sala, sala}
+          end
+        end)
+
+        # Eliminar al usuario de la lista de usuarios
+        usuarios_actualizados = Map.delete(estado.usuarios, nombre_usuario)
+
+        # Notificar a otros usuarios sobre la desconexión
+        broadcast_sistema("El usuario #{nombre_usuario} se ha desconectado")
+
+        {:reply, :ok, %{estado | usuarios: usuarios_actualizados, salas: salas_actualizadas}}
+      :error ->
+        {:reply, {:error, "Usuario no encontrado"}, estado}
     end
   end
 

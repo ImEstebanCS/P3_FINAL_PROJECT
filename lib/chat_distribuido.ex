@@ -2,12 +2,12 @@
 defmodule ChatDistribuido do
   alias ChatDistribuido.{Cliente, Servidor}
 
-  # Inicia el servidor de chat
+  # Inicia el servidor de chat y configura el nodo principal
   def iniciar_servidor do
     ChatDistribuido.Servidor.iniciar()
   end
 
-  # Inicia un cliente de chat con el nombre de usuario especificado
+  # Inicia un nuevo cliente con el nombre de usuario especificado y lo conecta al servidor
   def iniciar_cliente(nombre_usuario) do
     Node.start(:"cliente_#{nombre_usuario}@192.168.1.4")
     Node.set_cookie(:micookie)
@@ -21,14 +21,14 @@ defmodule ChatDistribuido do
     end
   end
 
-  # Inicia la interfaz interactiva del cliente
+  # Muestra la bienvenida y ayuda inicial al usuario
   defp iniciar_interfaz_cliente(pid, nombre_usuario) do
     IO.puts("\n¡Bienvenido al chat, #{nombre_usuario}!")
     mostrar_ayuda()
     bucle_interfaz(pid)
   end
 
-  # Bucle principal de la interfaz de comandos del cliente
+  # Bucle principal que procesa los comandos del usuario hasta que decida salir
   defp bucle_interfaz(pid) do
     IO.write("\nComando> ")
     comando = IO.gets("") |> String.trim()
@@ -39,13 +39,13 @@ defmodule ChatDistribuido do
     end
   end
 
-  # Procesa los comandos ingresados por el usuario
+  # Procesa el comando de ayuda
   defp procesar_comando("/help", _pid) do
     mostrar_ayuda()
     :continuar
   end
 
-  # Lista las salas disponibles
+  # Lista todas las salas disponibles en el chat
   defp procesar_comando("/list", _pid) do
     case GenServer.call({:global, ChatDistribuido.Servidor}, :obtener_salas) do
       [] ->
@@ -57,7 +57,7 @@ defmodule ChatDistribuido do
     :continuar
   end
 
-  # Crea una nueva sala
+  # Crea una nueva sala con el nombre especificado
   defp procesar_comando("/create " <> nombre_sala, _pid) do
     case GenServer.call({:global, ChatDistribuido.Servidor}, {:crear_sala, nombre_sala}) do
       :ok -> IO.puts("Sala '#{nombre_sala}' creada exitosamente")
@@ -66,7 +66,7 @@ defmodule ChatDistribuido do
     :continuar
   end
 
-  # Unirse a una sala existente
+  # Une al usuario a una sala existente
   defp procesar_comando("/join " <> nombre_sala, pid) do
     case Cliente.unirse_sala(pid, nombre_sala) do
       :ok -> IO.puts("Te has unido a la sala '#{nombre_sala}'")
@@ -75,19 +75,19 @@ defmodule ChatDistribuido do
     :continuar
   end
 
-  # Salir del chat
+  # Desconecta al usuario y cierra la sesión
   defp procesar_comando("/exit", pid) do
     Cliente.salir_sala(pid)
     :salir
   end
 
-  # Enviar un mensaje a la sala actual
+  # Envía un mensaje a la sala actual del usuario
   defp procesar_comando(mensaje, pid) do
     Cliente.enviar_mensaje(pid, mensaje)
     :continuar
   end
 
-  # Muestra la ayuda de comandos disponibles
+  # Muestra la lista de comandos disponibles y su uso
   defp mostrar_ayuda do
     IO.puts("""
 

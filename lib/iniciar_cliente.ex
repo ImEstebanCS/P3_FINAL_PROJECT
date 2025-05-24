@@ -18,8 +18,8 @@ defmodule ChatDistribuido.IniciarCliente do
     # Establecer la cookie para autenticación entre nodos
     Node.set_cookie(:chat_secreto)
 
-    # Intentar conectar con el servidor
-    servidor = :"servidor@172.20.10.7"
+    # Intentar conectar con el servidor debes cambiarlo segun la ip del servidor
+    servidor = :"servidor@192.168.1.54"
 
     case Node.connect(servidor) do
       true ->

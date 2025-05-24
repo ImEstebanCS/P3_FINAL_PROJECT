@@ -4,8 +4,8 @@ defmodule ChatDistribuido.IniciarServidor do
   """
 
   def start do
-    # Configurar el nombre del nodo con la IP específica
-    nombre_nodo = :"servidor@ 192.168.1.4"
+    # Configurar el nombre del nodo con la IP específica segun la ip del servidor
+    nombre_nodo = :"servidor@192.168.1.54"
 
     # Iniciar el nodo distribuido
     Node.start(nombre_nodo)
